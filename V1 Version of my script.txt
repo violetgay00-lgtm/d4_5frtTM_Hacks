@@ -1,0 +1,355 @@
+// ==UserScript==
+// @name         Old Man V1 Not Much Futures just killaura works
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  idk whats here O_O
+// @author       d4_5frtTM and Bloxd.io 
+// @match        *://bloxd.io/*
+// @grant        none
+//license        MIT
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let isInjectionSuccessful = false;
+    let killauraInterval = null;
+
+    const ObjectUtils = {
+        getKeys(obj) {
+            let keysArray = [];
+            if (obj != null) {
+                for (var key in obj) {
+                    keysArray.push(key);
+                }
+            }
+            return keysArray;
+        },
+
+        getValues(obj) {
+            const keys = this.getKeys(obj);
+            let valuesArray = [];
+            for (let i = 0; i < keys.length; i++) {
+                valuesArray.push(obj[keys[i]]);
+            }
+            return valuesArray;
+        }
+    };
+
+    const VectorMath = {
+        normalize(vector) {
+            const [x, y, z] = vector;
+            const magnitudeSquared = x * x + y * y + z * z;
+            if (magnitudeSquared > 0) {
+                const inverseMagnitude = 1 / Math.sqrt(magnitudeSquared);
+                return [x * inverseMagnitude, y * inverseMagnitude, z * inverseMagnitude];
+            }
+            return vector;
+        },
+
+        getDistance(vectorA, vectorB) {
+            return Math.sqrt(this.getDistanceSquared(vectorA, vectorB));
+        },
+
+        getDistanceSquared(vectorA, vectorB) {
+            const dx = vectorB[0] - vectorA[0];
+            const dy = vectorB[1] - vectorA[1];
+            const dz = vectorB[2] - vectorA[2];
+            return dx * dx + dy * dy + dz * dz;
+        }
+    };
+
+    const GameInterface = {
+        webpackRequire: null,
+        _cachedNoaInstance: null,
+        bloxdProps: null,
+
+        get noa() {
+            if (this._cachedNoaInstance) {
+                return this._cachedNoaInstance;
+            }
+            this._cachedNoaInstance = ObjectUtils.getValues(this.bloxdProps).find(prop => prop?.entities);
+            return this._cachedNoaInstance;
+        },
+
+        init() {
+            const windowDescriptors = Object.getOwnPropertyDescriptors(window);
+            const webpackKey = Object.keys(windowDescriptors).find(key => windowDescriptors[key]?.set?.toString().includes("++"));
+            const webpackPush = window[webpackKey] = window[webpackKey];
+            const randomModuleId = Math.floor(Math.random() * 9999999 + 1);
+
+            webpackPush.push([
+                [randomModuleId], {},
+                (requireFunc) => { this.webpackRequire = requireFunc; }
+            ]);
+
+            this.bloxdProps = ObjectUtils.getValues(this.findModule("nonBlocksClient:")).find(prop => typeof prop == "object");
+        },
+
+        findModule(searchText) {
+            const allModules = this.webpackRequire.m;
+            for (let moduleId in allModules) {
+                const module = allModules[moduleId];
+                if (module && module.toString().includes(searchText)) {
+                    return this.webpackRequire(moduleId);
+                }
+            }
+            return null;
+        }
+    };
+
+    const NoaAPI = {
+        getPosition(entityId) {
+            return GameInterface.noa.entities.getState(entityId, "position")?.position;
+        },
+
+        getHeldItem(entityId) {
+            try {
+                const getHeldItemFunc = ObjectUtils.getValues(GameInterface.noa.entities)
+                    .find(prop => typeof prop === 'function' && prop.length == 1 && prop.toString().length < 13 && prop.toString().includes(")."));
+                return getHeldItemFunc(entityId);
+            } catch (error) {
+                return null;
+            }
+        },
+
+        get playerList() {
+            const allPlayerIds = ObjectUtils.getValues(GameInterface.noa.bloxd.getPlayerIds());
+            return allPlayerIds
+                .filter(playerId => playerId !== 1 && this.getHeldItem(playerId))
+                .map(playerId => parseInt(playerId));
+        },
+
+        get doAttack() {
+            const myPlayerId = 1;
+            const heldItem = this.getHeldItem(myPlayerId);
+            if (!heldItem) return () => {};
+            const attackFunction = heldItem.doAttack || heldItem.breakingItem.doAttack;
+            return attackFunction.bind(heldItem);
+        },
+    };
+
+    function sendChatMessage(msg) {
+        try {
+            const chatSystem = ObjectUtils.getValues(GameInterface.bloxdProps).find(p => p && typeof p.sendChat === 'function');
+            if (chatSystem) {
+                chatSystem.sendChat(msg);
+            }
+        } catch (e) {
+            console.error("Failed to send chat message:", e);
+        }
+    }
+
+    function killauraLogic() {
+        if (!isInjectionSuccessful) return;
+        const myPlayerId = 1;
+        const myPosition = NoaAPI.getPosition(myPlayerId);
+        const killRadius = 4.5;
+        const attackFunction = NoaAPI.doAttack;
+
+        NoaAPI.playerList.forEach(enemyId => {
+            const enemyPosition = NoaAPI.getPosition(enemyId);
+
+            if (enemyPosition && VectorMath.getDistance(myPosition, enemyPosition) <= killRadius) {
+                const attackVector = VectorMath.normalize([
+                    enemyPosition[0] - myPosition[0],
+                    enemyPosition[1] - myPosition[1],
+                    enemyPosition[2] - myPosition[2]
+                ]);
+                attackFunction(attackVector, enemyId.toString(), "BodyMesh");
+
+                setTimeout(() => {
+                    const stillAlive = NoaAPI.getPosition(enemyId);
+                    if (!stillAlive) {
+                        sendChatMessage("ez");
+                    }
+                }, 1);
+            }
+        });
+    }
+
+    function performInjection() {
+        try {
+            GameInterface.init();
+            isInjectionSuccessful = true;
+            console.log("Injection successful!");
+        } catch (error) {
+            console.error("Injection failed:", error);
+        }
+    }
+    performInjection();
+
+    const gui = document.createElement('div');
+    gui.id = 'The Man V1';
+    gui.style.position = 'fixed';
+    gui.style.top = localStorage.getItem('gui-top') || '50px';
+    gui.style.left = localStorage.getItem('gui-left') || '50px';
+    gui.style.width = '350px';
+    gui.style.background = localStorage.getItem('gui-color') || 'rgba(20,20,20,0.95)';
+    gui.style.border = '1px solid #333';
+    gui.style.borderRadius = '8px';
+    gui.style.color = '#fff';
+    gui.style.padding = '10px';
+    gui.style.fontFamily = 'Arial, sans-serif';
+    gui.style.zIndex = '9999';
+    gui.style.display = 'none';
+    gui.style.userSelect = 'none';
+
+    gui.innerHTML = `
+        <h2 style="text-align:center; color:#00aaff; margin:5px 0;">The Man V1</h2>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <button class="tab-btn" data-tab="movement">Movement</button>
+            <button class="tab-btn" data-tab="player">Player</button>
+            <button class="tab-btn" data-tab="combat">Combat</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+        </div>
+        <div id="tab-content" style="min-height:150px; background:#111; border-radius:6px; padding:10px; overflow:auto;">
+            <p>Select a tab</p>
+        </div>
+    `;
+
+    document.body.appendChild(gui);
+
+    const buttons = gui.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        btn.style.flex = '1';
+        btn.style.margin = '0 3px';
+        btn.style.background = '#222';
+        btn.style.color = '#00aaff';
+        btn.style.border = 'none';
+        btn.style.borderRadius = '5px';
+        btn.style.cursor = 'pointer';
+        btn.style.padding = '8px';
+    });
+
+    const tabContent = gui.querySelector('#tab-content');
+
+    const watermark = document.createElement('div');
+    watermark.textContent = localStorage.getItem('watermark-text') || 'Old Man V1';
+    watermark.style.position = 'fixed';
+    watermark.style.top = localStorage.getItem('watermark-top') || '20px';
+    watermark.style.left = localStorage.getItem('watermark-left') || '20px';
+    watermark.style.fontSize = '32px';
+    watermark.style.fontWeight = 'bold';
+    watermark.style.color = 'red';
+    watermark.style.animation = 'rainbowHue 3s linear infinite';
+    watermark.style.cursor = 'move';
+    watermark.style.zIndex = '99999';
+    document.body.appendChild(watermark);
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes rainbowHue {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            loadTab(btn.dataset.tab);
+        });
+    });
+
+    function loadTab(tab) {
+        if (tab === 'movement') {
+            tabContent.innerHTML = `<h3 style="color:#00aaff;">Movement</h3><label><input type="checkbox"> Speed Not WorkingHack</label><br><label><input type="checkbox"> Auto Jump Bloxd New upd Anticheat not work :(</label>`;
+        } else if (tab === 'player') {
+            tabContent.innerHTML = `<h3 style="color:#00aaff;">Player</h3><label><input type="checkbox"> God Mode Arthur """"</label><br><label><input type="checkbox"> Infinite Health patched</label>`;
+        } else if (tab === 'combat') {
+            const killauraActive = killauraInterval !== null;
+            tabContent.innerHTML = `
+                <h3 style="color:#00aaff;">Combat</h3>
+                <label><input type="checkbox" id="toggle-killaura" ${killauraActive ? 'checked' : ''}> Enable Killaura</label>
+            `;
+            document.getElementById('toggle-killaura').onchange = (e) => {
+                if (e.target.checked) {
+                    killauraInterval = setInterval(killauraLogic, 100);
+                } else {
+                    clearInterval(killauraInterval);
+                    killauraInterval = null;
+                }
+            };
+        } else if (tab === 'settings') {
+            const watermarkVisible = localStorage.getItem('watermark-visible') !== 'false';
+            tabContent.innerHTML = `
+                <h3 style="color:#00aaff;">Settings</h3>
+                <button id="reset-position" style="width:100%; margin:5px 0; padding:8px; background:#333; color:#fff; border:none; border-radius:5px;">Reset GUI Position</button>
+                <label style="display:block; margin:10px 0;">Choose GUI Color: <input type="color" id="color-picker" value="#141414"></label>
+                <label style="display:block; margin:10px 0;">Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text') || 'The Old Man V1'}" style="width:100%; padding:5px;"></label>
+                <label style="display:block; margin:10px 0;"><input type="checkbox" id="toggle-watermark" ${watermarkVisible ? 'checked' : ''}> Show Watermark</label>
+            `;
+
+            document.getElementById('reset-position').onclick = () => {
+                gui.style.top = '50px';
+                gui.style.left = '50px';
+                localStorage.removeItem('gui-top');
+                localStorage.removeItem('gui-left');
+            };
+
+            document.getElementById('color-picker').oninput = (e) => {
+                gui.style.background = e.target.value;
+                localStorage.setItem('gui-color', e.target.value);
+            };
+
+            document.getElementById('watermark-text').oninput = (e) => {
+                watermark.textContent = e.target.value;
+                localStorage.setItem('watermark-text', e.target.value);
+            };
+
+            document.getElementById('toggle-watermark').onchange = (e) => {
+                const show = e.target.checked;
+                watermark.style.display = show ? 'block' : 'none';
+                localStorage.setItem('watermark-visible', show);
+            };
+        }
+    }
+
+    if (localStorage.getItem('watermark-visible') === 'false') {
+        watermark.style.display = 'none';
+    }
+
+    let isDragging = false;
+    let offsetX, offsetY;
+    gui.addEventListener('mousedown', (e) => {
+        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+            isDragging = true;
+            offsetX = e.clientX - gui.offsetLeft;
+            offsetY = e.clientY - gui.offsetTop;
+        }
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            gui.style.left = `${e.clientX - offsetX}px`;
+            gui.style.top = `${e.clientY - offsetY}px`;
+            localStorage.setItem('gui-left', gui.style.left);
+            localStorage.setItem('gui-top', gui.style.top);
+        }
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'ShiftRight') {
+            gui.style.display = gui.style.display === 'none' ? 'block' : 'none';
+        }
+    });
+
+    let draggingWatermark = false;
+    let wmOffsetX, wmOffsetY;
+    watermark.addEventListener('mousedown', (e) => {
+        draggingWatermark = true;
+        wmOffsetX = e.clientX - watermark.offsetLeft;
+        wmOffsetY = e.clientY - watermark.offsetTop;
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (draggingWatermark) {
+            watermark.style.left = `${e.clientX - wmOffsetX}px`;
+            watermark.style.top = `${e.clientY - wmOffsetY}px`;
+            localStorage.setItem('watermark-left', watermark.style.left);
+            localStorage.setItem('watermark-top', watermark.style.top);
+        }
+    });
+    document.addEventListener('mouseup', () => { draggingWatermark = false; });
+
+})();
