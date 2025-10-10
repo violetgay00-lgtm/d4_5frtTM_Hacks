@@ -1,275 +1,287 @@
 // ==UserScript==
-// @name         Old Man V2
+// @name         Old Man V2 :)
 // @namespace    http://tampermonkey.net/
-// @version      0.2
-// @description  Same functions, but cleaner UI
-// @author       d4_5frtTM + bloxd.io Anticheat
+// @version      0.6
+// @description  UM this is for bloxd.io 
+// @author       d4_5frtTM and fucking Anticheat
 // @match        *://bloxd.io/*
 // @grant        none
 // @license      MIT
 // ==/UserScript==
-
+ 
 (function() {
-    'use strict';
-
-    let isInjectionSuccessful = false;
-    let killauraInterval = null;
-
-    //Core
-    const ObjectUtils = {
-        getKeys(obj) {
-            let keysArray = [];
-            if (obj != null) for (var key in obj) keysArray.push(key);
-            return keysArray;
-        },
-        getValues(obj) {
-            const keys = this.getKeys(obj);
-            return keys.map(k => obj[k]);
-        }
-    };
-    const VectorMath = {
-        normalize([x, y, z]) {
-            const mag2 = x*x + y*y + z*z;
-            if (mag2 > 0) {
-                const inv = 1 / Math.sqrt(mag2);
-                return [x*inv, y*inv, z*inv];
-            }
-            return [x, y, z];
-        },
-        getDistance(a, b) {
-            const dx = b[0]-a[0], dy = b[1]-a[1], dz = b[2]-a[2];
-            return Math.sqrt(dx*dx + dy*dy + dz*dz);
-        }
-    };
-    const GameInterface = {
-        webpackRequire:null, _cachedNoaInstance:null, bloxdProps:null,
-        get noa() {
-            if (this._cachedNoaInstance) return this._cachedNoaInstance;
-            this._cachedNoaInstance = ObjectUtils.getValues(this.bloxdProps).find(p=>p?.entities);
-            return this._cachedNoaInstance;
-        },
-        init() {
-            const windowDesc = Object.getOwnPropertyDescriptors(window);
-            const webpackKey = Object.keys(windowDesc).find(k=>windowDesc[k]?.set?.toString().includes("++"));
-            const webpackPush = window[webpackKey] = window[webpackKey];
-            const id = Math.floor(Math.random()*9999999+1);
-            webpackPush.push([[id],{},(req)=>{this.webpackRequire=req;}]);
-            this.bloxdProps = ObjectUtils.getValues(this.findModule("nonBlocksClient:")).find(p=>typeof p=="object");
-        },
-        findModule(txt) {
-            const mods = this.webpackRequire.m;
-            for (let id in mods) {
-                const m = mods[id];
-                if (m && m.toString().includes(txt)) return this.webpackRequire(id);
-            }
-            return null;
-        }
-    };
-    const NoaAPI = {
-        getPosition(id){return GameInterface.noa.entities.getState(id,"position")?.position;},
-        getHeldItem(id){
-            try {
-                const fn = ObjectUtils.getValues(GameInterface.noa.entities)
-                    .find(p=>typeof p=="function"&&p.length==1&&p.toString().length<13&&p.toString().includes(")."));
-                return fn(id);
-            } catch { return null; }
-        },
-        get playerList() {
-            const ids = ObjectUtils.getValues(GameInterface.noa.bloxd.getPlayerIds());
-            return ids.filter(i=>i!==1&&this.getHeldItem(i)).map(i=>parseInt(i));
-        },
-        get doAttack() {
-            const myId=1, item=this.getHeldItem(myId);
-            if (!item) return ()=>{};
-            const atk=item.doAttack||item.breakingItem.doAttack;
-            return atk.bind(item);
-        }
-    };
-    function sendChatMessage(msg){
-        try{
-            const chatSys=ObjectUtils.getValues(GameInterface.bloxdProps).find(p=>p&&typeof p.sendChat=="function");
-            if(chatSys)chatSys.sendChat(msg);
-        }catch(e){console.error(e);}
+'use strict';
+ 
+let isInjectionSuccessful = false;
+let killauraInterval = null;
+ 
+// Core Ty For LETS GROW A GARDEN 
+const ObjectUtils = {
+    getKeys(obj){let arr=[];if(obj)for(let k in obj)arr.push(k);return arr;},
+    getValues(obj){return this.getKeys(obj).map(k=>obj[k]);}
+};
+const VectorMath = {
+    normalize([x,y,z]){const m2=x*x+y*y+z*z;if(m2>0){const i=1/Math.sqrt(m2);return [x*i,y*i,z*i];}return [x,y,z];},
+    getDistance(a,b){const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2];return Math.sqrt(dx*dx+dy*dy+dz*dz);}
+};
+const GameInterface = {
+    webpackRequire:null,_cachedNoaInstance:null,bloxdProps:null,
+    get noa(){if(this._cachedNoaInstance)return this._cachedNoaInstance;
+        this._cachedNoaInstance=ObjectUtils.getValues(this.bloxdProps).find(p=>p?.entities);
+        return this._cachedNoaInstance;},
+    init(){
+        const desc=Object.getOwnPropertyDescriptors(window);
+        const key=Object.keys(desc).find(k=>desc[k]?.set?.toString().includes("++"));
+        const push=window[key]=window[key];
+        const id=Math.floor(Math.random()*9999999+1);
+        push.push([[id],{},(req)=>{this.webpackRequire=req;}]);
+        this.bloxdProps=ObjectUtils.getValues(this.findModule("nonBlocksClient:")).find(p=>typeof p=="object");
+    },
+    findModule(txt){
+        const mods=this.webpackRequire.m;
+        for(let id in mods){const m=mods[id];if(m&&m.toString().includes(txt))return this.webpackRequire(id);}
+        return null;
     }
-    function killauraLogic(){
-        if(!isInjectionSuccessful)return;
-        const me=1,myPos=NoaAPI.getPosition(me),atk=NoaAPI.doAttack,radius=4.5;
-        NoaAPI.playerList.forEach(id=>{
-            const pos=NoaAPI.getPosition(id);
-            if(pos && VectorMath.getDistance(myPos,pos)<=radius){
-                const dir=VectorMath.normalize([pos[0]-myPos[0],pos[1]-myPos[1],pos[2]-myPos[2]]);
-                atk(dir,id.toString(),"BodyMesh");
-                setTimeout(()=>{if(!NoaAPI.getPosition(id))sendChatMessage("ez");},1);
-            }
-        });
+};
+const NoaAPI = {
+    getPosition(id){return GameInterface.noa.entities.getState(id,"position")?.position;},
+    getHeldItem(id){try{
+        const fn=ObjectUtils.getValues(GameInterface.noa.entities)
+            .find(p=>typeof p=="function"&&p.length==1&&p.toString().length<13&&p.toString().includes(")."));
+        return fn(id);}catch{return null;}} ,
+    get playerList(){
+        const ids=ObjectUtils.getValues(GameInterface.noa.bloxd.getPlayerIds());
+        return ids.filter(i=>i!==1&&this.getHeldItem(i)).map(i=>parseInt(i));
+    },
+    get doAttack(){
+        const myId=1,item=this.getHeldItem(myId);
+        if(!item)return()=>{};
+        const atk=item.doAttack||item.breakingItem.doAttack;
+        return atk.bind(item);
     }
-    function performInjection(){
-        try{GameInterface.init();isInjectionSuccessful=true;console.log("Injection successful!");}
-        catch(e){console.error("Injection failed:",e);}
+};
+function sendChatMessage(msg){
+    try{
+        const chatSys=ObjectUtils.getValues(GameInterface.bloxdProps).find(p=>p&&typeof p.sendChat=="function");
+        if(chatSys)chatSys.sendChat(msg);
+    }catch(e){console.error(e);}
+}
+ 
+// Console Log in UI 
+let logBox=document.createElement('div');
+logBox.id='inlineLog';
+logBox.style=`
+    margin-top:8px;
+    background:rgba(0,10,20,0.7);
+    border:1px solid rgba(0,150,255,0.5);
+    border-radius:8px;
+    font-size:12px;color:#00bfff;
+    font-family:'Consolas',monospace;
+    padding:6px;
+    overflow-y:auto;
+    height:140px;
+    display:none;
+`;
+document.body.appendChild(logBox);
+ 
+function log(msg){
+    const line=document.createElement('div');
+    line.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+    logBox.appendChild(line);
+    if(logBox.children.length>80)logBox.removeChild(logBox.firstChild); // auto-trim
+    logBox.scrollTop=logBox.scrollHeight;
+}
+ 
+//Killaura Logic Fixed
+function killauraLogic(){
+    if(!isInjectionSuccessful)return;
+    const me=1,myPos=NoaAPI.getPosition(me),atk=NoaAPI.doAttack,radius=4.5;
+    NoaAPI.playerList.forEach(id=>{
+        const pos=NoaAPI.getPosition(id);
+        if(pos && VectorMath.getDistance(myPos,pos)<=radius){
+            const dir=VectorMath.normalize([pos[0]-myPos[0],pos[1]-myPos[1],pos[2]-myPos[2]]);
+            atk(dir,id.toString(),"BodyMesh");
+            log(`Attacked player ID ${id}`);
+            setTimeout(()=>{if(!NoaAPI.getPosition(id))sendChatMessage("ez");},1);
+        }
+    });
+}
+ 
+// Injection 
+function performInjection(){
+    try{GameInterface.init();isInjectionSuccessful=true;log("✅ Injection successful");}
+    catch(e){console.error("Injection failed:",e);log("❌ Injection failed");}
+}
+performInjection();
+ 
+// GUI 
+const gui=document.createElement('div');
+gui.id='OldManV1';
+gui.style=`
+    position:fixed;
+    top:${localStorage.getItem('gui-top')||'60px'};
+    left:${localStorage.getItem('gui-left')||'60px'};
+    width:370px;
+    backdrop-filter:blur(10px);
+    background:rgba(10,10,15,0.85);
+    border:1px solid rgba(0,150,255,0.5);
+    box-shadow:0 0 20px rgba(0,150,255,0.3);
+    border-radius:12px;
+    color:#eee;
+    font-family:'Consolas',monospace;
+    padding:12px;
+    z-index:9999;
+    display:none;
+    transition:opacity 0.25s ease;
+    user-select:none;
+`;
+gui.innerHTML=`
+    <h2 style="text-align:center;color:#00bfff;margin-bottom:8px;text-shadow:0 0 8px #00bfff;">Old Man V1</h2>
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
+        <button class="tab-btn" data-tab="movement">Movement</button>
+        <button class="tab-btn" data-tab="player">Player</button>
+        <button class="tab-btn" data-tab="combat">Combat</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+    <div id="tab-content" style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;min-height:150px;">
+        <p style="text-align:center;color:#777;">Select a tab</p>
+    </div>
+`;
+document.body.appendChild(gui);
+ 
+//  Glow Animation that Big Bug
+gui.animate([
+    {boxShadow:'0 0 10px rgba(0,150,255,0.2)'},
+    {boxShadow:'0 0 25px rgba(0,150,255,0.8)'},
+    {boxShadow:'0 0 10px rgba(0,150,255,0.2)'}
+],{duration:3000,iterations:Infinity});
+ 
+// Styles
+const style=document.createElement('style');
+style.innerHTML=`
+.tab-btn{flex:1;padding:8px 0;background:linear-gradient(135deg,#111,#222);
+border:1px solid rgba(0,150,255,0.5);color:#00bfff;border-radius:8px;
+cursor:pointer;transition:all .15s ease;text-shadow:0 0 6px #00bfff;}
+.tab-btn:hover{background:#00bfff;color:#000;box-shadow:0 0 15px #00bfff;}
+.tab-btn.active{background:#00bfff;color:#000;box-shadow:0 0 20px #00bfff;transform:scale(1.05);transition:all .2s ease;}
+@keyframes rainbowHue{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+`;
+document.head.appendChild(style);
+ 
+const buttons=gui.querySelectorAll('.tab-btn');
+const tabContent=gui.querySelector('#tab-content');
+ 
+//Tab Animations Not Ai
+function setActiveTab(button){
+    buttons.forEach(b => b.classList.remove('active'));
+    button.classList.add('active');
+}
+buttons.forEach(b => {
+    b.onclick = () => {
+        loadTab(b.dataset.tab);
+        setActiveTab(b);
+        // Fade-in content
+        tabContent.style.opacity = 0;
+        setTimeout(() => { tabContent.style.opacity = 1; }, 50);
+    };
+});
+ 
+// Watermark
+const watermark=document.createElement('div');
+watermark.textContent=localStorage.getItem('watermark-text')||'Old Man V1';
+watermark.style=`
+    position:fixed;
+    top:${localStorage.getItem('watermark-top')||'20px'};
+    left:${localStorage.getItem('watermark-left')||'20px'};
+    font-size:28px;font-weight:bold;color:#00bfff;
+    text-shadow:0 0 15px #00bfff;
+    animation:rainbowHue 3s linear infinite;
+    cursor:move;z-index:99999;
+`;
+document.body.appendChild(watermark);
+ 
+// Tabs content logic SHIT
+function loadTab(tab){
+    if(tab==='movement'){
+        tabContent.innerHTML=`<h3 style="color:#00bfff;">Movement</h3>
+        <label><input type="checkbox"> Speed (Not working)</label><br>
+        <label><input type="checkbox"> Auto Jump (patched)</label>`;
+    }else if(tab==='player'){
+        tabContent.innerHTML=`<h3 style="color:#00bfff;">Player</h3>
+        <label><input type="checkbox"> God Mode (Arthur)</label><br>
+        <label><input type="checkbox"> Infinite Health (patched)</label><br><br>
+        <button id="toggle-log" class="tab-btn">💬 Show Log Console</button>`;
+        const toggle=document.getElementById('toggle-log');
+        toggle.onclick=()=> {
+            const hidden=logBox.style.display==='none';
+            logBox.style.display=hidden?'block':'none';
+            toggle.textContent=hidden?'💬 Hide Log Console':'💬 Show Log Console';
+            tabContent.appendChild(logBox);
+        };
+    }else if(tab==='combat'){
+        const active=killauraInterval!==null;
+        tabContent.innerHTML=`<h3 style="color:#00bfff;">Combat</h3>
+        <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura</label>`;
+        document.getElementById('toggle-killaura').onchange=e=>{
+            if(e.target.checked){killauraInterval=setInterval(killauraLogic,100);log('⚔️ Killaura enabled');}
+            else{clearInterval(killauraInterval);killauraInterval=null;log('❌ Killaura disabled');}
+        };
+    }else if(tab==='settings'){
+        const visible=localStorage.getItem('watermark-visible')!=='false';
+        tabContent.innerHTML=`
+        <h3 style="color:#00bfff;">Settings</h3>
+        <button id="reset-position" class="tab-btn" style="margin-bottom:10px;">Reset GUI Position</button>
+        <label>GUI Color: <input type="color" id="color-picker" value="#0a0a0f"></label><br>
+        <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V1'}" style="width:100%;padding:4px;"></label><br>
+        <label><input type="checkbox" id="toggle-watermark" ${visible?'checked':''}> Show Watermark</label>`;
+        document.getElementById('reset-position').onclick=()=>{
+            gui.style.top='60px';gui.style.left='60px';
+            localStorage.removeItem('gui-top');localStorage.removeItem('gui-left');
+        };
+        document.getElementById('color-picker').oninput=e=>{
+            gui.style.background=e.target.value;
+            localStorage.setItem('gui-color',e.target.value);
+        };
+        document.getElementById('watermark-text').oninput=e=>{
+            watermark.textContent=e.target.value;
+            localStorage.setItem('watermark-text',e.target.value);
+        };
+        document.getElementById('toggle-watermark').onchange=e=>{
+            const show=e.target.checked;
+            watermark.style.display=show?'block':'none';
+            localStorage.setItem('watermark-visible',show);
+        };
     }
-    performInjection();
-
-    //UI
-    const gui = document.createElement('div');
-    gui.id = 'OldManV1';
-    gui.style = `
-        position: fixed;
-        top: ${localStorage.getItem('gui-top') || '60px'};
-        left: ${localStorage.getItem('gui-left') || '60px'};
-        width: 370px;
-        backdrop-filter: blur(10px);
-        background: rgba(10,10,15,0.85);
-        border: 1px solid rgba(0,150,255,0.5);
-        box-shadow: 0 0 20px rgba(0,150,255,0.3);
-        border-radius: 12px;
-        color: #eee;
-        font-family: 'Consolas', monospace;
-        padding: 12px;
-        z-index: 9999;
-        display: none;
-        transition: opacity 0.25s ease;
-        user-select: none;
-    `;
-    gui.innerHTML = `
-        <h2 style="text-align:center;color:#00bfff;margin-bottom:8px;text-shadow:0 0 8px #00bfff;">Old Man V1</h2>
-        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
-            <button class="tab-btn" data-tab="movement">Movement</button>
-            <button class="tab-btn" data-tab="player">Player</button>
-            <button class="tab-btn" data-tab="combat">Combat</button>
-            <button class="tab-btn" data-tab="settings">Settings</button>
-        </div>
-        <div id="tab-content" style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;min-height:150px;">
-            <p style="text-align:center;color:#777;">Select a tab</p>
-        </div>
-    `;
-    document.body.appendChild(gui);
-
-    // Fancy button styling
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .tab-btn {
-            flex:1;
-            padding:8px 0;
-            background:linear-gradient(135deg,#111,#222);
-            border:1px solid rgba(0,150,255,0.5);
-            color:#00bfff;
-            border-radius:8px;
-            cursor:pointer;
-            transition:all 0.15s ease;
-            text-shadow:0 0 6px #00bfff;
-        }
-        .tab-btn:hover {
-            background:#00bfff;
-            color:#000;
-            box-shadow:0 0 15px #00bfff;
-        }
-        @keyframes rainbowHue {
-            0%{filter:hue-rotate(0deg);}
-            100%{filter:hue-rotate(360deg);}
-        }
-    `;
-    document.head.appendChild(style);
-
-    const buttons = gui.querySelectorAll('.tab-btn');
-    const tabContent = gui.querySelector('#tab-content');
-    buttons.forEach(b=>b.onclick=()=>loadTab(b.dataset.tab));
-
-    const watermark = document.createElement('div');
-    watermark.textContent = localStorage.getItem('watermark-text') || 'Old Man V1';
-    watermark.style = `
-        position:fixed;
-        top:${localStorage.getItem('watermark-top')||'20px'};
-        left:${localStorage.getItem('watermark-left')||'20px'};
-        font-size:28px;
-        font-weight:bold;
-        color:#00bfff;
-        text-shadow:0 0 15px #00bfff;
-        animation:rainbowHue 3s linear infinite;
-        cursor:move;
-        z-index:99999;
-    `;
-    document.body.appendChild(watermark);
-
-    function loadTab(tab) {
-        if (tab === 'movement') {
-            tabContent.innerHTML = `<h3 style="color:#00bfff;">Movement</h3>
-                <label><input type="checkbox"> Speed (Not working)</label><br>
-                <label><input type="checkbox"> Auto Jump (patched)</label>`;
-        } else if (tab === 'player') {
-            tabContent.innerHTML = `<h3 style="color:#00bfff;">Player</h3>
-                <label><input type="checkbox"> God Mode (Arthur)</label><br>
-                <label><input type="checkbox"> Infinite Health (patched)</label>`;
-        } else if (tab === 'combat') {
-            const active = killauraInterval!==null;
-            tabContent.innerHTML = `<h3 style="color:#00bfff;">Combat</h3>
-                <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura</label>`;
-            document.getElementById('toggle-killaura').onchange = e=>{
-                if(e.target.checked) killauraInterval=setInterval(killauraLogic,100);
-                else {clearInterval(killauraInterval);killauraInterval=null;}
-            };
-        } else if (tab === 'settings') {
-            const visible = localStorage.getItem('watermark-visible')!=='false';
-            tabContent.innerHTML = `
-                <h3 style="color:#00bfff;">Settings</h3>
-                <button id="reset-position" class="tab-btn" style="margin-bottom:10px;">Reset GUI Position</button>
-                <label>GUI Color: <input type="color" id="color-picker" value="#0a0a0f"></label><br>
-                <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V1'}" style="width:100%;padding:4px;"></label><br>
-                <label><input type="checkbox" id="toggle-watermark" ${visible?'checked':''}> Show Watermark</label>`;
-            document.getElementById('reset-position').onclick=()=>{
-                gui.style.top='60px';gui.style.left='60px';
-                localStorage.removeItem('gui-top');localStorage.removeItem('gui-left');
-            };
-            document.getElementById('color-picker').oninput=e=>{
-                gui.style.background=e.target.value;
-                localStorage.setItem('gui-color',e.target.value);
-            };
-            document.getElementById('watermark-text').oninput=e=>{
-                watermark.textContent=e.target.value;
-                localStorage.setItem('watermark-text',e.target.value);
-            };
-            document.getElementById('toggle-watermark').onchange=e=>{
-                const show=e.target.checked;
-                watermark.style.display=show?'block':'none';
-                localStorage.setItem('watermark-visible',show);
-            };
-        }
+}
+ 
+//A Dragging GUI
+let drag=false,offX,offY;
+gui.addEventListener('mousedown',e=>{
+    if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='INPUT'){
+        drag=true;offX=e.clientX-gui.offsetLeft;offY=e.clientY-gui.offsetTop;
     }
-
-    // Dragble Ui gf
-    let drag=false,offX,offY;
-    gui.addEventListener('mousedown',e=>{
-        if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='INPUT'){
-            drag=true;offX=e.clientX-gui.offsetLeft;offY=e.clientY-gui.offsetTop;
-        }
-    });
-    document.addEventListener('mousemove',e=>{
-        if(drag){gui.style.left=`${e.clientX-offX}px`;gui.style.top=`${e.clientY-offY}px`;
-        localStorage.setItem('gui-left',gui.style.left);localStorage.setItem('gui-top',gui.style.top);}
-    });
-    document.addEventListener('mouseup',()=>drag=false);
-
-    // Right Shift Nigga-
-    document.addEventListener('keydown',e=>{
-        if(e.code==='ShiftRight'){
-            gui.style.display=gui.style.display==='none'?'block':'none';
-        }
-    });
-
-    //dg watermarkkiing
-    let dragW=false,wx,wy;
-    watermark.addEventListener('mousedown',e=>{
-        dragW=true;wx=e.clientX-watermark.offsetLeft;wy=e.clientY-watermark.offsetTop;
-    });
-    document.addEventListener('mousemove',e=>{
-        if(dragW){
-            watermark.style.left=`${e.clientX-wx}px`;
-            watermark.style.top=`${e.clientY-wy}px`;
-            localStorage.setItem('watermark-left',watermark.style.left);
-            localStorage.setItem('watermark-top',watermark.style.top);
-        }
-    });
-    document.addEventListener('mouseup',()=>dragW=false);
-
-    console.log("Old Man V1 IS THE BESTTTTTT)");
-})();
-
+});
+document.addEventListener('mousemove',e=>{
+    if(drag){gui.style.left=`${e.clientX-offX}px`;gui.style.top=`${e.clientY-offY}px`;
+    localStorage.setItem('gui-left',gui.style.left);
+    localStorage.setItem('gui-top',gui.style.top);}
+});
+document.addEventListener('mouseup',()=>drag=false);
+ 
+//UI with Right Shift
+document.addEventListener('keydown',e=>{
+    if(e.code==='ShiftRight'){gui.style.display=gui.style.display==='none'?'block':'none';}
+});
+ 
+// A Draggable Watermark 
+let dragW=false,wx,wy;
+watermark.addEventListener('mousedown',e=>{dragW=true;wx=e.clientX-watermark.offsetLeft;wy=e.clientY-watermark.offsetTop;});
+document.addEventListener('mousemove',e=>{
+    if(dragW){watermark.style.left=`${e.clientX-wx}px`;watermark.style.top=`${e.clientY-wy}px`;
+    localStorage.setItem('watermark-left',watermark.style.left);
+    localStorage.setItem('watermark-top',watermark.style.top);}
+});
+document.addEventListener('mouseup',()=>dragW=false);
+ 
+console.log("Old Man V1 IS THE BEST XD)");
+})(); 
