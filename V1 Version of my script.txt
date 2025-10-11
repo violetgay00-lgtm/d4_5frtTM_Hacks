@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Old Man V2 :)
+// @name         Old Man V2 🎃 Halloween Edition 
 // @namespace    http://tampermonkey.net/
-// @version      0.7
-// @description  UM this is for bloxd.io
-// @author       d4_5frtTM and fucking Anticheat
+// @version      0.8
+// @description  For bloxd.io IO
+// @author       d4_5frtTM anf Fucking  Anticheat
 // @match        *://bloxd.io/*
 // @grant        none
 // @license      MIT
@@ -15,7 +15,7 @@
 let isInjectionSuccessful = false;
 let killauraInterval = null;
 
-// Notification may not work cyz of shit 
+// s Notification  FSA DAS
 function showNotification({title="Notification", text="", type="system", duration=2000}) {
     const notif = document.createElement('div');
     notif.className = 'custom-notification';
@@ -23,21 +23,24 @@ function showNotification({title="Notification", text="", type="system", duratio
     notif.style = `
         position:fixed;
         top:20px; right:20px;
-        padding:8px 12px;
-        background:${type==='combat' ? 'linear-gradient(135deg,#ff4444,#ff8888)' : 'linear-gradient(135deg,#00bfff,#44ffff)'};
+        padding:10px 14px;
+        background:${type==='combat'
+            ? 'linear-gradient(135deg,#ff6600,#ff2200)'
+            : 'linear-gradient(135deg,#6600ff,#bb00ff)'};
         color:#fff;
-        border-radius:10px;
-        box-shadow:0 0 15px rgba(0,0,0,0.5);
+        border-radius:12px;
+        box-shadow:0 0 25px rgba(255,100,0,0.6);
         z-index:99999;
-        font-family:Consolas,monospace;
+        font-family:"Consolas",monospace;
         font-weight:bold;
         text-align:center;
+        animation: notifPulse 1.5s ease-in-out infinite;
     `;
     document.body.appendChild(notif);
     setTimeout(()=>notif.remove(), duration);
 }
 
-// Shittest core
+// ==== Core ====
 const ObjectUtils = {
     getKeys(obj){let arr=[];if(obj)for(let k in obj)arr.push(k);return arr;},
     getValues(obj){return this.getKeys(obj).map(k=>obj[k]);}
@@ -89,7 +92,7 @@ function sendChatMessage(msg){
     }catch(e){console.error(e);}
 }
 
-// Console trash or log ?
+// ==== Log Box ====
 let logBox=document.createElement('div');
 logBox.id='inlineLog';
 logBox.style=`
@@ -101,7 +104,7 @@ logBox.style=`
     font-family:'Consolas',monospace;
     padding:6px;
     overflow-y:auto;
-    height:140px;
+    height:120px;
     display:none;
 `;
 document.body.appendChild(logBox);
@@ -111,10 +114,21 @@ function log(msg){
     line.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
     logBox.appendChild(line);
     if(logBox.children.length>80)logBox.removeChild(logBox.firstChild);
-    logBox.scrollTop=logBox.scrollHeight;
+    logBox.scrollTop = logBox.scrollHeight;
 }
 
-// Killaura Logic and smth NEw :)
+// ==== Feature Notification Helper ====
+function toggleFeature(name, enabled){
+    log(`${enabled ? '✅ Enabled' : '❌ Disabled'}: ${name}`);
+    showNotification({
+        title: enabled ? `🟢 ${name} ON` : `🔴 ${name} OFF`,
+        text: `You have ${enabled ? 'enabled' : 'disabled'} ${name}`,
+        type: 'combat',
+        duration: 1500
+    });
+}
+
+// ==== Killaura ====
 function killauraLogic(){
     if(!isInjectionSuccessful) return;
     const me = 1, myPos = NoaAPI.getPosition(me), atk = NoaAPI.doAttack, radius = 4.5;
@@ -124,197 +138,174 @@ function killauraLogic(){
             const dir = VectorMath.normalize([pos[0]-myPos[0], pos[1]-myPos[1], pos[2]-myPos[2]]);
             atk(dir,id.toString(),"BodyMesh");
 
-            // Get player name
-            let playerName = "Winning-A-guy 💀";
+            let playerName = "Spooked Player 👻";
             try {
                 const entity = GameInterface.noa.entities.getState(id, "player");
                 if(entity && entity.name) playerName = entity.name;
             } catch(e){}
 
             log(`Attacked: ${playerName}`);
-            showNotification({ title:"Killaura Hit", text:playerName, type:'combat', duration:1500 });
-
-            setTimeout(()=>{if(!NoaAPI.getPosition(id))sendChatMessage("ez");},1);
+            showNotification({ title:"🎃 Killaura Hit", text:playerName, type:'combat', duration:1500 });
         }
     });
 }
 
-// --- Injection --- sdsa
+// ==== Injection ====
 function performInjection(){
     try{GameInterface.init();isInjectionSuccessful=true;log("✅ Injection successful");}
     catch(e){console.error("Injection failed:",e);log("❌ Injection failed");}
 }
 performInjection();
 
-// GUI gyattt
+// ==== GUI ====
 const gui=document.createElement('div');
-gui.id='OldManV1';
+gui.id='OldManV2';
 gui.style=`
     position:fixed;
     top:${localStorage.getItem('gui-top')||'60px'};
     left:${localStorage.getItem('gui-left')||'60px'};
-    width:370px;
-    backdrop-filter:blur(10px);
-    background:rgba(10,10,15,0.85);
-    border:1px solid rgba(0,150,255,0.5);
-    box-shadow:0 0 20px rgba(0,150,255,0.3);
-    border-radius:12px;
+    width:380px;
+    backdrop-filter:blur(12px);
+    background:rgba(15,0,20,0.85);
+    border:2px solid rgba(255,100,0,0.6);
+    box-shadow:0 0 25px rgba(255,80,0,0.5);
+    border-radius:14px;
     color:#eee;
     font-family:'Consolas',monospace;
-    padding:12px;
+    padding:14px;
     z-index:9999;
     display:none;
-    transition:opacity 0.25s ease;
-    user-select:none;
 `;
 gui.innerHTML=`
-    <h2 style="text-align:center;color:#00bfff;margin-bottom:8px;text-shadow:0 0 8px #00bfff;">Old Man V1</h2>
+    <h2 style="text-align:center;color:#ff6600;margin-bottom:8px;text-shadow:0 0 10px #ff5500,0 0 20px #aa00ff;animation:glowTitle 3s ease-in-out infinite;">🎃 Old Man V2 🎃</h2>
     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
         <button class="tab-btn" data-tab="movement">Movement</button>
         <button class="tab-btn" data-tab="player">Player</button>
         <button class="tab-btn" data-tab="combat">Combat</button>
         <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
-    <div id="tab-content" style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;min-height:150px;">
-        <p style="text-align:center;color:#777;">Select a tab</p>
+    <div id="tab-content" style="background:rgba(0,0,0,0.5);border-radius:10px;padding:10px;min-height:150px;color:#ffb366;">
+        <p style="text-align:center;">🕸 Select a spooky tab...</p>
     </div>
 `;
 document.body.appendChild(gui);
 
-//  Glow Animation that Big Bug 
-gui.animate([
-    {boxShadow:'0 0 10px rgba(0,150,255,0.2)'},
-    {boxShadow:'0 0 25px rgba(0,150,255,0.8)'},
-    {boxShadow:'0 0 10px rgba(0,150,255,0.2)'}
-],{duration:3000,iterations:Infinity});
-
-// Styles xd 
+// ==== CSS Animations ====
 const style=document.createElement('style');
 style.innerHTML=`
-.tab-btn{flex:1;padding:8px 0;background:linear-gradient(135deg,#111,#222);
-border:1px solid rgba(0,150,255,0.5);color:#00bfff;border-radius:8px;
-cursor:pointer;transition:all .15s ease;text-shadow:0 0 6px #00bfff;}
-.tab-btn:hover{background:#00bfff;color:#000;box-shadow:0 0 15px #00bfff;}
-.tab-btn.active{background:#00bfff;color:#000;box-shadow:0 0 20px #00bfff;transform:scale(1.05);transition:all .2s ease;}
-@keyframes rainbowHue{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+@keyframes glowTitle{
+  0%,100%{text-shadow:0 0 8px #ff5500,0 0 20px #9900ff;}
+  50%{text-shadow:0 0 15px #ffaa00,0 0 30px #ff00ff;}
+}
+@keyframes notifPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.05);}
+}
+.tab-btn{
+  flex:1;
+  padding:8px 0;
+  background:linear-gradient(135deg,#1a001a,#330033);
+  border:1px solid rgba(255,120,0,0.6);
+  color:#ff7700;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .25s ease;
+  text-shadow:0 0 6px #ff6600;
+}
+.tab-btn:hover{
+  background:#ff7700;
+  color:#1a001a;
+  box-shadow:0 0 20px #ff5500;
+  transform:scale(1.05);
+}
+.tab-btn.active{
+  background:#ff5500;
+  color:#000;
+  box-shadow:0 0 25px #ff6600;
+}
 `;
 document.head.appendChild(style);
 
+// ==== Tabs ====
 const buttons=gui.querySelectorAll('.tab-btn');
 const tabContent=gui.querySelector('#tab-content');
+function setActiveTab(button){buttons.forEach(b=>b.classList.remove('active'));button.classList.add('active');}
+buttons.forEach(b=>b.onclick=()=>{loadTab(b.dataset.tab);setActiveTab(b);tabContent.style.opacity=0;setTimeout(()=>tabContent.style.opacity=1,50);});
 
-//Tab Animations Not Ai
-function setActiveTab(button){
-    buttons.forEach(b => b.classList.remove('active'));
-    button.classList.add('active');
-}
-buttons.forEach(b => {
-    b.onclick = () => {
-        loadTab(b.dataset.tab);
-        setActiveTab(b);
-        // Fade-in content
-        tabContent.style.opacity = 0;
-        setTimeout(() => { tabContent.style.opacity = 1; }, 50);
-    };
-});
-
-// Watermark materwark
+// ==== Watermark ====
 const watermark=document.createElement('div');
-watermark.textContent=localStorage.getItem('watermark-text')||'Old Man V1';
+watermark.textContent=localStorage.getItem('watermark-text')||'🎃 Old Man V2';
 watermark.style=`
     position:fixed;
     top:${localStorage.getItem('watermark-top')||'20px'};
     left:${localStorage.getItem('watermark-left')||'20px'};
-    font-size:28px;font-weight:bold;color:#00bfff;
-    text-shadow:0 0 15px #00bfff;
-    animation:rainbowHue 3s linear infinite;
-    cursor:move;z-index:99999;
+    font-size:26px;
+    font-weight:bold;
+    color:#ff6600;
+    text-shadow:0 0 10px #ff5500,0 0 15px #aa00ff;
+    animation:hueShift 4s linear infinite;
+    cursor:move;
+    z-index:99999;
 `;
 document.body.appendChild(watermark);
 
-// Tabs content logic SHIT
+// ==== Tabs content ====
 function loadTab(tab){
     if(tab==='movement'){
-        tabContent.innerHTML=`<h3 style="color:#00bfff;">Movement</h3>
+        tabContent.innerHTML=`<h3 style="color:#ff7700;">Movement</h3>
         <label><input type="checkbox"> Speed (Not working)</label><br>
         <label><input type="checkbox"> Auto Jump (patched)</label>`;
-    }else if(tab==='player'){
-        tabContent.innerHTML=`<h3 style="color:#00bfff;">Player</h3>
-        <label><input type="checkbox"> God Mode (Arthur)</label><br>
-        <label><input type="checkbox"> Infinite Health (patched)</label><br><br>
-        <button id="toggle-log" class="tab-btn">?? Show Log Console</button>`;
-        const toggle=document.getElementById('toggle-log');
-        toggle.onclick=()=> {
+    } else if(tab==='player'){
+        tabContent.innerHTML=`<h3 style="color:#ff7700;">Player</h3>
+        <label><input type="checkbox" id="toggle-godmode"> God Mode (Arthur)</label><br>
+        <label><input type="checkbox" id="toggle-infinitehealth"> Infinite Health (patched)</label><br><br>
+        <button id="toggle-log" class="tab-btn">💀 Show Log Console</button>`;
+        document.getElementById('toggle-log').onclick=()=> {
             const hidden=logBox.style.display==='none';
             logBox.style.display=hidden?'block':'none';
-            toggle.textContent=hidden?'?? Hide Log Console':'?? Show Log Console';
+            document.getElementById('toggle-log').textContent=hidden?'☠ Hide Log Console':'💀 Show Log Console';
             tabContent.appendChild(logBox);
         };
-    }else if(tab==='combat'){
+        document.getElementById('toggle-godmode').onchange=e=>toggleFeature('God Mode', e.target.checked);
+        document.getElementById('toggle-infinitehealth').onchange=e=>toggleFeature('Infinite Health', e.target.checked);
+    } else if(tab==='combat'){
         const active=killauraInterval!==null;
-        tabContent.innerHTML=`<h3 style="color:#00bfff;">Combat</h3>
-        <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura</label>`;
+        tabContent.innerHTML=`<h3 style="color:#ff7700;">Combat</h3>
+        <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura 🎃</label>`;
         document.getElementById('toggle-killaura').onchange=e=>{
-            if(e.target.checked){killauraInterval=setInterval(killauraLogic,100);log('?? Killaura enabled');}
-            else{clearInterval(killauraInterval);killauraInterval=null;log('? Killaura disabled');}
+            if(e.target.checked){killauraInterval=setInterval(killauraLogic,100);toggleFeature('Killaura',true);}
+            else{clearInterval(killauraInterval);killauraInterval=null;toggleFeature('Killaura',false);}
         };
-    }else if(tab==='settings'){
+    } else if(tab==='settings'){
         const visible=localStorage.getItem('watermark-visible')!=='false';
         tabContent.innerHTML=`
-        <h3 style="color:#00bfff;">Settings</h3>
+        <h3 style="color:#ff7700;">Settings</h3>
         <button id="reset-position" class="tab-btn" style="margin-bottom:10px;">Reset GUI Position</button>
-        <label>GUI Color: <input type="color" id="color-picker" value="#0a0a0f"></label><br>
-        <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V1'}" style="width:100%;padding:4px;"></label><br>
+        <label>GUI Color: <input type="color" id="color-picker" value="#0a0010"></label><br>
+        <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V2 🎃'}" style="width:100%;padding:4px;"></label><br>
         <label><input type="checkbox" id="toggle-watermark" ${visible?'checked':''}> Show Watermark</label>`;
-        document.getElementById('reset-position').onclick=()=>{
-            gui.style.top='60px';gui.style.left='60px';
-            localStorage.removeItem('gui-top');localStorage.removeItem('gui-left');
-        };
-        document.getElementById('color-picker').oninput=e=>{
-            gui.style.background=e.target.value;
-            localStorage.setItem('gui-color',e.target.value);
-        };
-        document.getElementById('watermark-text').oninput=e=>{
-            watermark.textContent=e.target.value;
-            localStorage.setItem('watermark-text',e.target.value);
-        };
-        document.getElementById('toggle-watermark').onchange=e=>{
-            const show=e.target.checked;
-            watermark.style.display=show?'block':'none';
-            localStorage.setItem('watermark-visible',show);
-        };
+        document.getElementById('reset-position').onclick=()=>{gui.style.top='60px';gui.style.left='60px';localStorage.removeItem('gui-top');localStorage.removeItem('gui-left');};
+        document.getElementById('color-picker').oninput=e=>{gui.style.background=e.target.value;localStorage.setItem('gui-color',e.target.value);};
+        document.getElementById('watermark-text').oninput=e=>{watermark.textContent=e.target.value;localStorage.setItem('watermark-text',e.target.value);};
+        document.getElementById('toggle-watermark').onchange=e=>{const show=e.target.checked;watermark.style.display=show?'block':'none';localStorage.setItem('watermark-visible',show);};
     }
 }
 
-//ummm Dragging GUI
+// ==== Drag GUI ====
 let drag=false,offX,offY;
-gui.addEventListener('mousedown',e=>{
-    if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='INPUT'){
-        drag=true;offX=e.clientX-gui.offsetLeft;offY=e.clientY-gui.offsetTop;
-    }
-});
-document.addEventListener('mousemove',e=>{
-    if(drag){gui.style.left=`${e.clientX-offX}px`;gui.style.top=`${e.clientY-offY}px`;
-    localStorage.setItem('gui-left',gui.style.left);
-    localStorage.setItem('gui-top',gui.style.top);}
-});
+gui.addEventListener('mousedown',e=>{if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='INPUT'){drag=true;offX=e.clientX-gui.offsetLeft;offY=e.clientY-gui.offsetTop;}});
+document.addEventListener('mousemove',e=>{if(drag){gui.style.left=`${e.clientX-offX}px`;gui.style.top=`${e.clientY-offY}px`;localStorage.setItem('gui-left',gui.style.left);localStorage.setItem('gui-top',gui.style.top);}});
 document.addEventListener('mouseup',()=>drag=false);
 
-//UI with Right Shift that a b4
-document.addEventListener('keydown',e=>{
-    if(e.code==='ShiftRight'){gui.style.display=gui.style.display==='none'?'block':'none';}
-});
+// ==== Toggle GUI ====
+document.addEventListener('keydown',e=>{if(e.code==='ShiftRight'){gui.style.display=gui.style.display==='none'?'block':'none';}});
 
-// A  AADSA Draggable Watermark 
+// ==== Draggable Watermark ====
 let dragW=false,wx,wy;
 watermark.addEventListener('mousedown',e=>{dragW=true;wx=e.clientX-watermark.offsetLeft;wy=e.clientY-watermark.offsetTop;});
-document.addEventListener('mousemove',e=>{
-    if(dragW){watermark.style.left=`${e.clientX-wx}px`;watermark.style.top=`${e.clientY-wy}px`;
-    localStorage.setItem('watermark-left',watermark.style.left);
-    localStorage.setItem('watermark-top',watermark.style.top);}
-});
+document.addEventListener('mousemove',e=>{if(dragW){watermark.style.left=`${e.clientX-wx}px`;watermark.style.top=`${e.clientY-wy}px`;localStorage.setItem('watermark-left',watermark.style.left);localStorage.setItem('watermark-top',watermark.style.top);}});
 document.addEventListener('mouseup',()=>dragW=false);
 
-
-console.log("Old Man V2 IS THE BESTTTT");
+console.log("🎃 Old Man V2 Halloween Edition Loaded");
 })();
+
