@@ -1,20 +1,20 @@
 // ==UserScript==
-// @name         Old Man V2 🎃 Halloween Edition 
+// @name         Old Man V2    
 // @namespace    http://tampermonkey.net/
-// @version      0.8
+// @version      1.0
 // @description  For bloxd.io IO
 // @author       d4_5frtTM anf Fucking  Anticheat
 // @match        *://bloxd.io/*
 // @grant        none
 // @license      MIT
 // ==/UserScript==
-
+ 
 (function() {
 'use strict';
-
+ 
 let isInjectionSuccessful = false;
 let killauraInterval = null;
-
+ 
 // s Notification  FSA DAS
 function showNotification({title="Notification", text="", type="system", duration=2000}) {
     const notif = document.createElement('div');
@@ -39,7 +39,7 @@ function showNotification({title="Notification", text="", type="system", duratio
     document.body.appendChild(notif);
     setTimeout(()=>notif.remove(), duration);
 }
-
+ 
 // ==== Core ====
 const ObjectUtils = {
     getKeys(obj){let arr=[];if(obj)for(let k in obj)arr.push(k);return arr;},
@@ -91,7 +91,7 @@ function sendChatMessage(msg){
         if(chatSys)chatSys.sendChat(msg);
     }catch(e){console.error(e);}
 }
-
+ 
 // ==== Log Box ====
 let logBox=document.createElement('div');
 logBox.id='inlineLog';
@@ -108,7 +108,7 @@ logBox.style=`
     display:none;
 `;
 document.body.appendChild(logBox);
-
+ 
 function log(msg){
     const line=document.createElement('div');
     line.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -116,18 +116,18 @@ function log(msg){
     if(logBox.children.length>80)logBox.removeChild(logBox.firstChild);
     logBox.scrollTop = logBox.scrollHeight;
 }
-
+ 
 // ==== Feature Notification Helper ====
 function toggleFeature(name, enabled){
-    log(`${enabled ? '✅ Enabled' : '❌ Disabled'}: ${name}`);
+    log(`${enabled ? '? Enabled' : '? Disabled'}: ${name}`);
     showNotification({
-        title: enabled ? `🟢 ${name} ON` : `🔴 ${name} OFF`,
+        title: enabled ? `?? ${name} ON` : `?? ${name} OFF`,
         text: `You have ${enabled ? 'enabled' : 'disabled'} ${name}`,
         type: 'combat',
         duration: 1500
     });
 }
-
+ 
 // ==== Killaura ====
 function killauraLogic(){
     if(!isInjectionSuccessful) return;
@@ -137,26 +137,67 @@ function killauraLogic(){
         if(pos && VectorMath.getDistance(myPos,pos) <= radius){
             const dir = VectorMath.normalize([pos[0]-myPos[0], pos[1]-myPos[1], pos[2]-myPos[2]]);
             atk(dir,id.toString(),"BodyMesh");
-
-            let playerName = "Spooked Player 👻";
+ 
+            let playerName = "Spooked Player ??";
             try {
                 const entity = GameInterface.noa.entities.getState(id, "player");
                 if(entity && entity.name) playerName = entity.name;
             } catch(e){}
-
+ 
             log(`Attacked: ${playerName}`);
-            showNotification({ title:"🎃 Killaura Hit", text:playerName, type:'combat', duration:1500 });
+            showNotification({ title:"?? Killaura Hit", text:playerName, type:'combat', duration:1500 });
         }
     });
 }
-
+ 
 // ==== Injection ====
 function performInjection(){
-    try{GameInterface.init();isInjectionSuccessful=true;log("✅ Injection successful");}
-    catch(e){console.error("Injection failed:",e);log("❌ Injection failed");}
+    try{GameInterface.init();isInjectionSuccessful=true;log("? Injection successful");}
+    catch(e){console.error("Injection failed:",e);log("? Injection failed");}
 }
 performInjection();
-
+ 
+// ==== Coordinates HUD ====
+let coordsHUD = document.createElement('div');
+coordsHUD.style=`
+    position:fixed;
+    top:100px;
+    left:100px;
+    background:rgba(0,0,0,0.6);
+    color:#ffbb00;
+    font-family:Consolas,monospace;
+    font-size:14px;
+    padding:6px 10px;
+    border-radius:8px;
+    z-index:99999;
+    cursor:move;
+    display:none;
+`;
+document.body.appendChild(coordsHUD);
+ 
+let coordsInterval = null;
+function updateCoords(){
+    const pos = NoaAPI.getPosition(1);
+    if(pos) coordsHUD.textContent = `X: ${pos[0].toFixed(1)} Y: ${pos[1].toFixed(1)} Z: ${pos[2].toFixed(1)}`;
+}
+function toggleCoords(enabled){
+    if(enabled){
+        coordsHUD.style.display='block';
+        coordsInterval = setInterval(updateCoords, 100);
+        toggleFeature('Coordinates HUD', true);
+    } else {
+        coordsHUD.style.display='none';
+        clearInterval(coordsInterval);
+        toggleFeature('Coordinates HUD', false);
+    }
+}
+ 
+// Draggable Coords HUD
+let dragC=false, cx, cy;
+coordsHUD.addEventListener('mousedown', e=>{dragC=true; cx=e.clientX-coordsHUD.offsetLeft; cy=e.clientY-coordsHUD.offsetTop;});
+document.addEventListener('mousemove', e=>{if(dragC){coordsHUD.style.left=`${e.clientX-cx}px`; coordsHUD.style.top=`${e.clientY-cy}px`;}});
+document.addEventListener('mouseup', ()=>dragC=false);
+ 
 // ==== GUI ====
 const gui=document.createElement('div');
 gui.id='OldManV2';
@@ -177,7 +218,7 @@ gui.style=`
     display:none;
 `;
 gui.innerHTML=`
-    <h2 style="text-align:center;color:#ff6600;margin-bottom:8px;text-shadow:0 0 10px #ff5500,0 0 20px #aa00ff;animation:glowTitle 3s ease-in-out infinite;">🎃 Old Man V2 🎃</h2>
+    <h2 style="text-align:center;color:#ff6600;margin-bottom:8px;text-shadow:0 0 10px #ff5500,0 0 20px #aa00ff;animation:glowTitle 3s ease-in-out infinite;"> Old Man V2 </h2>
     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
         <button class="tab-btn" data-tab="movement">Movement</button>
         <button class="tab-btn" data-tab="player">Player</button>
@@ -185,11 +226,11 @@ gui.innerHTML=`
         <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
     <div id="tab-content" style="background:rgba(0,0,0,0.5);border-radius:10px;padding:10px;min-height:150px;color:#ffb366;">
-        <p style="text-align:center;">🕸 Select a spooky tab...</p>
+        <p style="text-align:center;">?? Select a spooky tab...</p>
     </div>
 `;
 document.body.appendChild(gui);
-
+ 
 // ==== CSS Animations ====
 const style=document.createElement('style');
 style.innerHTML=`
@@ -225,16 +266,16 @@ style.innerHTML=`
 }
 `;
 document.head.appendChild(style);
-
+ 
 // ==== Tabs ====
 const buttons=gui.querySelectorAll('.tab-btn');
 const tabContent=gui.querySelector('#tab-content');
 function setActiveTab(button){buttons.forEach(b=>b.classList.remove('active'));button.classList.add('active');}
 buttons.forEach(b=>b.onclick=()=>{loadTab(b.dataset.tab);setActiveTab(b);tabContent.style.opacity=0;setTimeout(()=>tabContent.style.opacity=1,50);});
-
+ 
 // ==== Watermark ====
 const watermark=document.createElement('div');
-watermark.textContent=localStorage.getItem('watermark-text')||'🎃 Old Man V2';
+watermark.textContent=localStorage.getItem('watermark-text')||' Old Man V2';
 watermark.style=`
     position:fixed;
     top:${localStorage.getItem('watermark-top')||'20px'};
@@ -248,30 +289,33 @@ watermark.style=`
     z-index:99999;
 `;
 document.body.appendChild(watermark);
-
+ 
 // ==== Tabs content ====
 function loadTab(tab){
     if(tab==='movement'){
         tabContent.innerHTML=`<h3 style="color:#ff7700;">Movement</h3>
-        <label><input type="checkbox"> Speed (Not working)</label><br>
-        <label><input type="checkbox"> Auto Jump (patched)</label>`;
+        <label><input type="checkbox"> um (Not working)</label><br>
+        <label><input type="checkbox"> join discord https://discord.gg/QTxpz9mX</label>`;
     } else if(tab==='player'){
         tabContent.innerHTML=`<h3 style="color:#ff7700;">Player</h3>
-        <label><input type="checkbox" id="toggle-godmode"> God Mode (Arthur)</label><br>
-        <label><input type="checkbox" id="toggle-infinitehealth"> Infinite Health (patched)</label><br><br>
-        <button id="toggle-log" class="tab-btn">💀 Show Log Console</button>`;
+        <label><input type="checkbox" id="toggle-godmode"> xd</label><br>
+        <label><input type="checkbox" id="toggle-s"> Infinite Health (patched)</label><br>
+        <label><input type="checkbox" id="toggle-coords"> Show Coordinates ??</label><br><br>
+        <button id="toggle-log" class="tab-btn">?? Show Log Console</button>`;
+ 
         document.getElementById('toggle-log').onclick=()=> {
             const hidden=logBox.style.display==='none';
             logBox.style.display=hidden?'block':'none';
-            document.getElementById('toggle-log').textContent=hidden?'☠ Hide Log Console':'💀 Show Log Console';
+            document.getElementById('toggle-log').textContent=hidden?' Hide Log Console':' Show Log Console';
             tabContent.appendChild(logBox);
         };
         document.getElementById('toggle-godmode').onchange=e=>toggleFeature('God Mode', e.target.checked);
         document.getElementById('toggle-infinitehealth').onchange=e=>toggleFeature('Infinite Health', e.target.checked);
+        document.getElementById('toggle-coords').onchange=e=>toggleCoords(e.target.checked);
     } else if(tab==='combat'){
         const active=killauraInterval!==null;
         tabContent.innerHTML=`<h3 style="color:#ff7700;">Combat</h3>
-        <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura 🎃</label>`;
+        <label><input type="checkbox" id="toggle-killaura" ${active?'checked':''}> Enable Killaura </label>`;
         document.getElementById('toggle-killaura').onchange=e=>{
             if(e.target.checked){killauraInterval=setInterval(killauraLogic,100);toggleFeature('Killaura',true);}
             else{clearInterval(killauraInterval);killauraInterval=null;toggleFeature('Killaura',false);}
@@ -282,7 +326,7 @@ function loadTab(tab){
         <h3 style="color:#ff7700;">Settings</h3>
         <button id="reset-position" class="tab-btn" style="margin-bottom:10px;">Reset GUI Position</button>
         <label>GUI Color: <input type="color" id="color-picker" value="#0a0010"></label><br>
-        <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V2 🎃'}" style="width:100%;padding:4px;"></label><br>
+        <label>Watermark Text: <input type="text" id="watermark-text" value="${localStorage.getItem('watermark-text')||'Old Man V2 '}" style="width:100%;padding:4px;"></label><br>
         <label><input type="checkbox" id="toggle-watermark" ${visible?'checked':''}> Show Watermark</label>`;
         document.getElementById('reset-position').onclick=()=>{gui.style.top='60px';gui.style.left='60px';localStorage.removeItem('gui-top');localStorage.removeItem('gui-left');};
         document.getElementById('color-picker').oninput=e=>{gui.style.background=e.target.value;localStorage.setItem('gui-color',e.target.value);};
@@ -290,22 +334,22 @@ function loadTab(tab){
         document.getElementById('toggle-watermark').onchange=e=>{const show=e.target.checked;watermark.style.display=show?'block':'none';localStorage.setItem('watermark-visible',show);};
     }
 }
-
+ 
 // ==== Drag GUI ====
 let drag=false,offX,offY;
 gui.addEventListener('mousedown',e=>{if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='INPUT'){drag=true;offX=e.clientX-gui.offsetLeft;offY=e.clientY-gui.offsetTop;}});
 document.addEventListener('mousemove',e=>{if(drag){gui.style.left=`${e.clientX-offX}px`;gui.style.top=`${e.clientY-offY}px`;localStorage.setItem('gui-left',gui.style.left);localStorage.setItem('gui-top',gui.style.top);}});
 document.addEventListener('mouseup',()=>drag=false);
-
+ 
 // ==== Toggle GUI ====
 document.addEventListener('keydown',e=>{if(e.code==='ShiftRight'){gui.style.display=gui.style.display==='none'?'block':'none';}});
-
+ 
 // ==== Draggable Watermark ====
 let dragW=false,wx,wy;
 watermark.addEventListener('mousedown',e=>{dragW=true;wx=e.clientX-watermark.offsetLeft;wy=e.clientY-watermark.offsetTop;});
 document.addEventListener('mousemove',e=>{if(dragW){watermark.style.left=`${e.clientX-wx}px`;watermark.style.top=`${e.clientY-wy}px`;localStorage.setItem('watermark-left',watermark.style.left);localStorage.setItem('watermark-top',watermark.style.top);}});
 document.addEventListener('mouseup',()=>dragW=false);
-
-console.log("🎃 Old Man V2 Halloween Edition Loaded");
+ 
+console.log(" Old Man V2 Is the best");
 })();
 
